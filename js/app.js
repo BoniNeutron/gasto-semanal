@@ -20,7 +20,18 @@ class Presupuesto {
 
     nuevoGasto(gasto) {
         this.gastos = [...this.gastos, gasto];
-        console.log(this.gastos);
+        this.calcularRestante();
+    }
+
+    calcularRestante() {
+        const gastado = this.gastos.reduce((total, gasto) => total + gasto.cantidad, 0);
+        this.restante = this.presupuesto - gastado;
+        console.log(this.restante);
+    }
+
+    eliminarGasto(id) {
+        this.gastos = this.gastos.filter(gasto => gasto.id !== id);
+        this.calcularRestante();
     }
 }
 
@@ -58,7 +69,7 @@ class UI {
         }, 3000);
     }
 
-    agregarGastoListado(gastos) {
+    mostrarGastos(gastos) {
         
         this.limpiarHTML(); // ELIMINA EL HTML PREVIO
 
@@ -71,10 +82,8 @@ class UI {
             nuevoGasto.className = 'list-group-item d-flex justify-content-between align-items-center';
             nuevoGasto.dataset.id = id;
 
-            console.log(nuevoGasto);
-
             // AGREGAR EL HTML DEL GASTO
-            nuevoGasto.innerHTML = `${nombre} <span class='badge badge-primary badge-pill'> ${cantidad} </span>`;
+            nuevoGasto.innerHTML = `${nombre} <span class='badge badge-primary badge-pill'> $ ${cantidad} </span>`;
             
             
 
@@ -82,6 +91,9 @@ class UI {
             const btnBorrar = document.createElement('button');
             btnBorrar.classList.add('btn', 'btn-danger', 'borrar-gasto');
             btnBorrar.innerHTML = 'Borrar &times;'
+            btnBorrar.onclick = () => {
+                eliminarGasto(id);
+            }
             nuevoGasto.appendChild(btnBorrar);
 
             // AGREGAR HTML
@@ -92,6 +104,35 @@ class UI {
     limpiarHTML() {
         while(gastoListado.firstChild) {
             gastoListado.removeChild(gastoListado.firstChild);
+        }
+    }
+
+    actualizarRestante(restante) {
+        document.querySelector('#restante').textContent = restante;
+    }
+
+    comprobarPresupuesto(presupuestObj) {
+        const {presupuesto, restante} = presupuestObj;
+
+        const restanteDiv = document.querySelector('.restante');
+
+        // Comprobar 25%
+        if ((presupuesto / 4) > restante) {
+            restanteDiv.classList.remove('alert-success', 'alert-warning');
+            restanteDiv.classList.add('alert-danger');
+        } else if ((presupuesto / 2) > restante) {
+            restanteDiv.classList.remove('alert-success');
+            restanteDiv.classList.add('alert-warning');
+        } else {
+            restanteDiv.classList.remove('alert-danger', 'alert-warning')
+            restanteDiv.classList.add('alert-success');
+        }
+
+        // SI EL TOTAL ES MENOR A 0
+        if (restante <= 0) {
+            ui.imprimirAlerta('El presupusto se ha agotado', 'error');
+
+            formulario.querySelector('button[type="submit"]').disabled = true;
         }
     }
 }
@@ -142,9 +183,26 @@ function agregarGasto(e) {
     ui.imprimirAlerta('Gasto agregado correctamente');
 
     // IMPRIMIR LOS GASTOS
-    const { gastos} = presupuesto
-    ui.agregarGastoListado(gastos);
+    const { gastos, restante} = presupuesto;
+    ui.mostrarGastos(gastos);
+
+    ui.actualizarRestante(restante);
+
+    ui.comprobarPresupuesto(presupuesto);
 
     // RESETEAR FORMULARIO
     formulario.reset();      
+}
+
+function eliminarGasto(id) {
+    // ELIMINA DEL OBJETO
+    presupuesto.eliminarGasto(id);
+
+    // ELIMINA LOS GASTOS DEL HTML
+    const {gastos, restante} = presupuesto;
+    ui.mostrarGastos(gastos);
+
+    ui.actualizarRestante(restante);
+
+    ui.comprobarPresupuesto(presupuesto);
 }
